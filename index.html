@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>走行記録</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --bg2: #181c27;
+    --bg3: #1f2535;
+    --border: #2a3044;
+    --accent: #4a9eff;
+    --accent2: #2ecc71;
+    --accent3: #f39c12;
+    --danger: #e74c3c;
+    --text: #e8ecf4;
+    --text2: #8a94a8;
+    --text3: #5a6478;
+    --radius: 10px;
+    --tab-h: 56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: calc(var(--tab-h) + 16px);
+  }
+
+  /* ── Header ── */
+  .app-header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .app-header h1 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: .05em;
+  }
+  .app-header .subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    margin-left: auto;
+  }
+
+  /* ── Tab Bar ── */
+  .tab-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: var(--tab-h);
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 200;
+  }
+  .tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    color: var(--text3);
+    font-size: 10px;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: color .15s;
+    padding: 0;
+  }
+  .tab-btn .icon { font-size: 20px; line-height: 1; }
+  .tab-btn.active { color: var(--accent); }
+
+  /* ── Pages ── */
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text2);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ── Form Controls ── */
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .form-row.single { grid-template-columns: 1fr; }
+  .form-row.triple { grid-template-columns: 1fr 1fr 1fr; }
+
+  label {
+    display: block;
+    font-size: 11px;
+    color: var(--text2);
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  input, select, textarea {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color .15s;
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  input[readonly] { opacity: .6; }
+
+  select option { background: var(--bg3); }
+
+  .day-display {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 14px;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-success { background: var(--accent2); color: #fff; }
+  .btn-warn { background: var(--accent3); color: #fff; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .btn-sm {
+    padding: 5px 10px;
+    font-size: 12px;
+    border-radius: 6px;
+  }
+  .btn-full { width: 100%; }
+
+  /* ── Segment ── */
+  .segment-block {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .segment-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .segment-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* ── Record List ── */
+  .record-item {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  .record-item-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .record-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+  }
+  .record-km {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent2);
+  }
+  .record-route {
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .record-type {
+    font-size: 11px;
+    color: var(--text3);
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    display: inline-block;
+  }
+  .record-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  /* ── Month Nav ── */
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    margin-bottom: 12px;
+  }
+  .month-nav .month-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .month-nav button {
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 8px;
+    line-height: 1;
+  }
+
+  /* ── Summary Cards ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    text-align: center;
+  }
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1.2;
+  }
+  .stat-value.green { color: var(--accent2); }
+  .stat-value.orange { color: var(--accent3); }
+  .stat-label { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  /* ── Type breakdown ── */
+  .type-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .type-row:last-child { border-bottom: none; }
+  .type-row .t-name { color: var(--text); }
+  .type-row .t-km {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent2);
+  }
+  .type-row .t-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+  }
+  .badge-work { background: rgba(74,158,255,.2); color: var(--accent); }
+  .badge-private { background: rgba(46,204,113,.2); color: var(--accent2); }
+
+  /* ── Progress bar ── */
+  .ratio-bar {
+    height: 10px;
+    background: var(--bg3);
+    border-radius: 5px;
+    overflow: hidden;
+    margin: 10px 0;
+  }
+  .ratio-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 5px;
+    transition: width .4s ease;
+  }
+  .ratio-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  /* ── Settings ── */
+  .setting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .setting-item:last-child { border-bottom: none; }
+  .setting-actions { display: flex; gap: 6px; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.7);
+    z-index: 500;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    padding: 20px 16px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  /* ── Misc ── */
+  .empty-state {
+    text-align: center;
+    color: var(--text3);
+    font-size: 13px;
+    padding: 40px 0;
+  }
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 12px 0;
+  }
+  .inline-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .loading {
+    text-align: center;
+    color: var(--text3);
+    padding: 30px;
+    font-size: 13px;
+  }
+
+  /* ── Confirm dialog ── */
+  #confirm-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.75);
+    z-index: 900;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  #confirm-overlay.open { display: flex; }
+  #confirm-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    width: 100%;
+    max-width: 340px;
+    text-align: center;
+  }
+  #confirm-box .q { font-size: 15px; margin-bottom: 16px; line-height: 1.6; }
+  #confirm-box .confirm-btns { display: flex; gap: 10px; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  @media (min-width: 600px) {
+    body { max-width: 600px; margin: 0 auto; }
+    .tab-bar { max-width: 600px; left: 50%; transform: translateX(-50%); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="app-header">
+  <span style="font-size:20px">🚗</span>
+  <h1>走行記録</h1>
+  <span class="subtitle" id="header-month"></span>
+</div>
+
+<!-- Pages -->
+
+<!-- ① 走行記録 -->
+<div id="page-trip" class="page active">
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">‹</button>
+    <span class="month-label" id="trip-month-label">----年--月</span>
+    <button onclick="changeMonth(1)">›</button>
+  </div>
+  <button class="btn btn-primary btn-full" onclick="openTripForm(null)" style="margin-bottom:14px">
+    ＋ 走行記録を追加
+  </button>
+  <div id="trip-list"><div class="loading">読み込み中…</div></div>
+</div>
+
+<!-- ② 給油記録 -->
+<div id="page-fuel" class="page">
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">‹</button>
+    <span class="month-label" id="fuel-month-label">----年--月</span>
+    <button onclick="changeMonth(1)">›</button>
+  </div>
+  <button class="btn btn-primary btn-full" onclick="openFuelForm(null)" style="margin-bottom:14px">
+    ＋ 給油記録を追加
+  </button>
+  <div id="fuel-list"><div class="loading">読み込み中…</div></div>
+</div>
+
+<!-- ③ 集計 -->
+<div id="page-stats" class="page">
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">‹</button>
+    <span class="month-label" id="stats-month-label">----年--月</span>
+    <button onclick="changeMonth(1)">›</button>
+  </div>
+  <div id="stats-content"><div class="loading">読み込み中…</div></div>
+</div>
+
+<!-- ④ 設定 -->
+<div id="page-settings" class="page">
+  <div class="card">
+    <div class="card-title">🗂 種別マスター</div>
+    <div id="type-list"></div>
+    <button class="btn btn-ghost btn-sm btn-full" style="margin-top:10px" onclick="openTypeForm(null)">＋ 種別を追加</button>
+  </div>
+  <div class="card">
+    <div class="card-title">📍 地点テンプレート</div>
+    <div id="place-list"></div>
+    <button class="btn btn-ghost btn-sm btn-full" style="margin-top:10px" onclick="openPlaceForm(null)">＋ 地点を追加</button>
+  </div>
+  <div class="card">
+    <div class="card-title">⛽ 車両・燃費設定</div>
+    <div class="form-row">
+      <div>
+        <label>タンク容量（L）</label>
+        <input type="number" id="tank-cap" placeholder="例: 50" min="0">
+      </div>
+      <div>
+        <label>初回満タン時の走行距離（km）</label>
+        <input type="number" id="init-km" placeholder="例: 12345" min="0">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="saveVehicleSettings()">保存</button>
+  </div>
+</div>
+
+<!-- Tab Bar -->
+<nav class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('trip',this)">
+    <span class="icon">🚗</span>走行
+  </button>
+  <button class="tab-btn" onclick="switchTab('fuel',this)">
+    <span class="icon">⛽</span>給油
+  </button>
+  <button class="tab-btn" onclick="switchTab('stats',this)">
+    <span class="icon">📊</span>集計
+  </button>
+  <button class="tab-btn" onclick="switchTab('settings',this)">
+    <span class="icon">⚙️</span>設定
+  </button>
+</nav>
+
+<!-- ── Modals ── -->
+
+<!-- Trip Form Modal -->
+<div class="modal-overlay" id="trip-modal">
+  <div class="modal">
+    <div class="modal-title">🚗 <span id="trip-modal-title">走行記録</span></div>
+    <input type="hidden" id="trip-edit-id">
+
+    <div class="form-row">
+      <div>
+        <label>日付</label>
+        <input type="date" id="trip-date" oninput="updateDayDisplay()">
+      </div>
+      <div>
+        <label>曜日</label>
+        <div class="day-display" id="trip-day">－</div>
+      </div>
+    </div>
+
+    <div id="segments-container"></div>
+
+    <button class="btn btn-ghost btn-sm btn-full" onclick="addSegment()" style="margin-bottom:14px">
+      ＋ 区間を追加
+    </button>
+
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1" onclick="saveTrip()">保存</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('trip-modal')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fuel Form Modal -->
+<div class="modal-overlay" id="fuel-modal">
+  <div class="modal">
+    <div class="modal-title">⛽ <span id="fuel-modal-title">給油記録</span></div>
+    <input type="hidden" id="fuel-edit-id">
+
+    <div class="form-row">
+      <div>
+        <label>日付</label>
+        <input type="date" id="fuel-date">
+      </div>
+    </div>
+    <div class="form-row triple">
+      <div>
+        <label>金額（円）</label>
+        <input type="number" id="fuel-amount" placeholder="0" min="0" oninput="calcUnitPrice()">
+      </div>
+      <div>
+        <label>リッター数（L）</label>
+        <input type="number" id="fuel-liters" placeholder="0.00" step="0.01" min="0" oninput="calcUnitPrice()">
+      </div>
+      <div>
+        <label>単価（円/L）</label>
+        <input type="number" id="fuel-unit" readonly placeholder="自動">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1" onclick="saveFuel()">保存</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('fuel-modal')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- Type Form Modal -->
+<div class="modal-overlay" id="type-modal">
+  <div class="modal">
+    <div class="modal-title">🗂 種別</div>
+    <input type="hidden" id="type-edit-id">
+    <div class="form-row single">
+      <div>
+        <label>種別名</label>
+        <input type="text" id="type-name" placeholder="例：往診・買い物">
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>分類</label>
+        <select id="type-category">
+          <option value="work">仕事</option>
+          <option value="private">プライベート</option>
+        </select>
+      </div>
+      <div>
+        <label>表示順</label>
+        <input type="number" id="type-order" placeholder="0" min="0">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1" onclick="saveType()">保存</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('type-modal')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- Place Form Modal -->
+<div class="modal-overlay" id="place-modal">
+  <div class="modal">
+    <div class="modal-title">📍 地点テンプレート</div>
+    <input type="hidden" id="place-edit-id">
+    <div class="form-row single">
+      <div>
+        <label>地点名</label>
+        <input type="text" id="place-name" placeholder="例：自宅・クリニック">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1" onclick="savePlace()">保存</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('place-modal')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div id="confirm-overlay">
+  <div id="confirm-box">
+    <div class="q" id="confirm-q">削除しますか？</div>
+    <div class="confirm-btns">
+      <button class="btn btn-danger" style="flex:1" id="confirm-yes">削除する</button>
+      <button class="btn btn-ghost" style="flex:1" id="confirm-no">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase + App Script -->
+<script type="module">
+// ════════════════════════════════════════════════
+// FIREBASE CONFIG — Tomの設定値をここに貼り付け
+// ════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+// ════════════════════════════════════════════════
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, doc,
+  addDoc, setDoc, updateDoc, deleteDoc,
+  getDocs, getDoc, onSnapshot,
+  query, where, orderBy, Timestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const app = initializeApp(FIREBASE_CONFIG);
+const db  = getFirestore(app);
+
+// ── State ──────────────────────────────────────
+let currentTab    = 'trip';
+let currentYear   = new Date().getFullYear();
+let currentMonth  = new Date().getMonth() + 1; // 1-based
+let tripData      = [];
+let fuelData      = [];
+let typesMaster   = []; // [{id, name, category, order}]
+let placesMaster  = []; // [{id, name}]
+let vehicleConfig = { tankCap: 0, initKm: 0 };
+let lastArrival   = '';   // 前回の到着地
+
+const DAYS = ['日','月','火','水','木','金','土'];
+
+// ── Helpers ────────────────────────────────────
+function ymd(y, m, d) {
+  return `${y}-${String(m).padStart(2,'0')}-${d ? String(d).padStart(2,'0') : ''}`;
+}
+function today() {
+  const t = new Date();
+  return ymd(t.getFullYear(), t.getMonth()+1, t.getDate());
+}
+function dayName(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  return DAYS[d.getDay()] + '曜';
+}
+function fmtNum(n) { return n ? n.toLocaleString() : '0'; }
+
+// ── Confirm ────────────────────────────────────
+function confirm(msg) {
+  return new Promise(resolve => {
+    document.getElementById('confirm-q').textContent = msg;
+    document.getElementById('confirm-overlay').classList.add('open');
+    const yes = document.getElementById('confirm-yes');
+    const no  = document.getElementById('confirm-no');
+    const cleanup = () => {
+      document.getElementById('confirm-overlay').classList.remove('open');
+      yes.onclick = null; no.onclick = null;
+    };
+    yes.onclick = () => { cleanup(); resolve(true); };
+    no.onclick  = () => { cleanup(); resolve(false); };
+  });
+}
+
+// ── Tab ────────────────────────────────────────
+window.switchTab = function(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  btn.classList.add('active');
+  updateMonthLabels();
+  if (tab === 'stats') renderStats();
+};
+
+// ── Month ──────────────────────────────────────
+window.changeMonth = function(delta) {
+  currentMonth += delta;
+  if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+  if (currentMonth < 1)  { currentMonth = 12; currentYear--; }
+  updateMonthLabels();
+  loadTrips();
+  loadFuel();
+  if (currentTab === 'stats') renderStats();
+};
+
+function updateMonthLabels() {
+  const lbl = `${currentYear}年${currentMonth}月`;
+  document.getElementById('trip-month-label').textContent  = lbl;
+  document.getElementById('fuel-month-label').textContent  = lbl;
+  document.getElementById('stats-month-label').textContent = lbl;
+  document.getElementById('header-month').textContent      = lbl;
+}
+
+// ════════════════════════════════════════════════
+// SETTINGS — Types & Places
+// ════════════════════════════════════════════════
+async function loadSettings() {
+  const snap = await getDocs(collection(db, 'drive_settings'));
+  typesMaster   = [];
+  placesMaster  = [];
+  vehicleConfig = { tankCap: 0, initKm: 0 };
+  snap.forEach(d => {
+    const dd = d.data();
+    if (dd._type === 'trip_type') typesMaster.push({ id: d.id, ...dd });
+    if (dd._type === 'place')     placesMaster.push({ id: d.id, ...dd });
+    if (dd._type === 'vehicle')   vehicleConfig = { tankCap: dd.tankCap||0, initKm: dd.initKm||0 };
+  });
+  typesMaster.sort((a,b) => (a.order||0)-(b.order||0));
+  renderTypeList();
+  renderPlaceList();
+  document.getElementById('tank-cap').value = vehicleConfig.tankCap || '';
+  document.getElementById('init-km').value  = vehicleConfig.initKm  || '';
+}
+
+function renderTypeList() {
+  const el = document.getElementById('type-list');
+  if (!typesMaster.length) { el.innerHTML = '<div class="empty-state">種別がありません</div>'; return; }
+  el.innerHTML = typesMaster.map(t => `
+    <div class="setting-item">
+      <div>
+        <span>${t.name}</span>
+        <span class="tag" style="margin-left:6px">${t.category==='work'?'仕事':'プライベート'}</span>
+      </div>
+      <div class="setting-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openTypeForm('${t.id}')">編集</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteType('${t.id}')">削除</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderPlaceList() {
+  const el = document.getElementById('place-list');
+  if (!placesMaster.length) { el.innerHTML = '<div class="empty-state">地点がありません</div>'; return; }
+  el.innerHTML = placesMaster.map(p => `
+    <div class="setting-item">
+      <span>${p.name}</span>
+      <div class="setting-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openPlaceForm('${p.id}')">編集</button>
+        <button class="btn btn-danger btn-sm" onclick="deletePlace('${p.id}')">削除</button>
+      </div>
+    </div>`).join('');
+}
+
+// Type Form
+window.openTypeForm = function(id) {
+  const t = id ? typesMaster.find(x => x.id === id) : null;
+  document.getElementById('type-edit-id').value    = id || '';
+  document.getElementById('type-name').value       = t?.name     || '';
+  document.getElementById('type-category').value   = t?.category || 'work';
+  document.getElementById('type-order').value      = t?.order    ?? '';
+  document.getElementById('type-modal').classList.add('open');
+};
+window.saveType = async function() {
+  const id   = document.getElementById('type-edit-id').value;
+  const data = {
+    _type:    'trip_type',
+    name:     document.getElementById('type-name').value.trim(),
+    category: document.getElementById('type-category').value,
+    order:    parseInt(document.getElementById('type-order').value) || 0
+  };
+  if (!data.name) { alert('種別名を入力してください'); return; }
+  if (id) await setDoc(doc(db, 'drive_settings', id), data);
+  else    await addDoc(collection(db, 'drive_settings'), data);
+  closeModal('type-modal');
+  await loadSettings();
+};
+window.deleteType = async function(id) {
+  if (!await confirm('この種別を削除しますか？')) return;
+  await deleteDoc(doc(db, 'drive_settings', id));
+  await loadSettings();
+};
+
+// Place Form
+window.openPlaceForm = function(id) {
+  const p = id ? placesMaster.find(x => x.id === id) : null;
+  document.getElementById('place-edit-id').value = id || '';
+  document.getElementById('place-name').value    = p?.name || '';
+  document.getElementById('place-modal').classList.add('open');
+};
+window.savePlace = async function() {
+  const id   = document.getElementById('place-edit-id').value;
+  const data = { _type: 'place', name: document.getElementById('place-name').value.trim() };
+  if (!data.name) { alert('地点名を入力してください'); return; }
+  if (id) await setDoc(doc(db, 'drive_settings', id), data);
+  else    await addDoc(collection(db, 'drive_settings'), data);
+  closeModal('place-modal');
+  await loadSettings();
+};
+window.deletePlace = async function(id) {
+  if (!await confirm('この地点を削除しますか？')) return;
+  await deleteDoc(doc(db, 'drive_settings', id));
+  await loadSettings();
+};
+
+// Vehicle
+window.saveVehicleSettings = async function() {
+  const snap = await getDocs(query(collection(db, 'drive_settings'), where('_type','==','vehicle')));
+  const data = {
+    _type:   'vehicle',
+    tankCap: parseFloat(document.getElementById('tank-cap').value) || 0,
+    initKm:  parseFloat(document.getElementById('init-km').value)  || 0
+  };
+  if (!snap.empty) await setDoc(doc(db, 'drive_settings', snap.docs[0].id), data);
+  else             await addDoc(collection(db, 'drive_settings'), data);
+  vehicleConfig = data;
+  alert('保存しました');
+};
+
+// ════════════════════════════════════════════════
+// TRIP
+// ════════════════════════════════════════════════
+async function loadTrips() {
+  const startStr = ymd(currentYear, currentMonth, 1);
+  const endStr   = ymd(currentYear, currentMonth+1 > 12 ? 1 : currentMonth+1, 1);
+  const endYear  = currentMonth === 12 ? currentYear + 1 : currentYear;
+  const endMStr  = ymd(endYear, currentMonth === 12 ? 1 : currentMonth+1, 1);
+
+  const snap = await getDocs(
+    query(collection(db, 'trips'),
+      where('date','>=', startStr),
+      where('date','<',  endMStr),
+      orderBy('date','desc')
+    )
+  );
+  tripData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderTripList();
+}
+
+function renderTripList() {
+  const el = document.getElementById('trip-list');
+  if (!tripData.length) {
+    el.innerHTML = '<div class="empty-state">この月の記録はありません</div>';
+    return;
+  }
+  el.innerHTML = tripData.map(t => {
+    const totalKm = (t.segments||[]).reduce((s,sg) => s + (parseFloat(sg.km)||0), 0);
+    const segs = (t.segments||[]).map(sg => {
+      const typeLabel = sg.typeOther
+        ? sg.typeOther
+        : (typesMaster.find(x => x.id === sg.typeId)?.name || sg.typeId || '－');
+      return `<div style="font-size:12px;color:var(--text2);margin-top:3px">
+        ${sg.from||'－'} → ${sg.to||'－'}
+        <span style="margin-left:6px;font-family:'JetBrains Mono',monospace;color:var(--accent2)">${sg.km||0}km</span>
+        <span class="record-type" style="margin-left:4px">${typeLabel}</span>
+      </div>`;
+    }).join('');
+    return `
+      <div class="record-item">
+        <div class="record-item-header">
+          <span class="record-date">${t.date}（${dayName(t.date)}）</span>
+          <span class="record-km">${totalKm}km</span>
+        </div>
+        ${segs}
+        <div class="record-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openTripForm('${t.id}')">編集</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteTrip('${t.id}')">削除</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// Segments UI
+let segments = [];
+function buildSegmentOpts(selectedId, customVal) {
+  const base = '<option value="">種別を選択</option>'
+    + typesMaster.map(t =>
+        `<option value="${t.id}" ${t.id === selectedId ? 'selected':''}>${t.name}</option>`
+      ).join('')
+    + `<option value="__other__" ${selectedId==='__other__' ? 'selected':''}>その他</option>`;
+  return base;
+}
+function buildPlaceOpts(selected) {
+  return '<option value="">（テンプレから選択）</option>'
+    + placesMaster.map(p =>
+        `<option value="${p.name}" ${p.name===selected?'selected':''}>${p.name}</option>`
+      ).join('');
+}
+
+function renderSegments() {
+  const c = document.getElementById('segments-container');
+  c.innerHTML = segments.map((sg, i) => `
+    <div class="segment-block" id="seg-${i}">
+      <div class="segment-header">
+        <span class="segment-num">区間 ${i+1}</span>
+        ${segments.length > 1 ? `<button class="btn btn-danger btn-sm" onclick="removeSegment(${i})">削除</button>` : ''}
+      </div>
+      <div class="form-row">
+        <div>
+          <label>種別</label>
+          <select id="seg-type-${i}" onchange="onTypeChange(${i})">
+            ${buildSegmentOpts(sg.typeId, sg.typeOther)}
+          </select>
+        </div>
+        <div id="seg-other-wrap-${i}" style="display:${sg.typeId==='__other__'?'block':'none'}">
+          <label>種別（任意）</label>
+          <input type="text" id="seg-other-${i}" value="${sg.typeOther||''}" placeholder="入力">
+        </div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label>出発地</label>
+          <select id="seg-from-sel-${i}" onchange="onFromSelChange(${i})">
+            ${buildPlaceOpts(sg.from)}
+          </select>
+          <input type="text" id="seg-from-${i}" value="${sg.from||''}" placeholder="または直接入力" style="margin-top:4px">
+        </div>
+        <div>
+          <label>到着地</label>
+          <select id="seg-to-sel-${i}" onchange="onToSelChange(${i})">
+            ${buildPlaceOpts(sg.to)}
+          </select>
+          <input type="text" id="seg-to-${i}" value="${sg.to||''}" placeholder="または直接入力" style="margin-top:4px">
+        </div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label>km数</label>
+          <input type="number" id="seg-km-${i}" value="${sg.km||''}" placeholder="0" min="0" step="0.1">
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+window.addSegment = function() {
+  const prev = segments.length ? segments[segments.length-1] : null;
+  segments.push({ typeId:'', typeOther:'', from: prev?.to||'', to:'', km:'' });
+  renderSegments();
+};
+window.removeSegment = function(i) {
+  segments.splice(i, 1);
+  renderSegments();
+};
+window.onTypeChange = function(i) {
+  const v = document.getElementById(`seg-type-${i}`).value;
+  document.getElementById(`seg-other-wrap-${i}`).style.display = v==='__other__' ? 'block' : 'none';
+};
+window.onFromSelChange = function(i) {
+  const v = document.getElementById(`seg-from-sel-${i}`).value;
+  if (v) document.getElementById(`seg-from-${i}`).value = v;
+};
+window.onToSelChange = function(i) {
+  const v = document.getElementById(`seg-to-sel-${i}`).value;
+  if (v) document.getElementById(`seg-to-${i}`).value = v;
+};
+
+function readSegments() {
+  return segments.map((_, i) => ({
+    typeId:    document.getElementById(`seg-type-${i}`).value,
+    typeOther: document.getElementById(`seg-other-${i}`)?.value.trim() || '',
+    from:      document.getElementById(`seg-from-${i}`).value.trim(),
+    to:        document.getElementById(`seg-to-${i}`).value.trim(),
+    km:        parseFloat(document.getElementById(`seg-km-${i}`).value) || 0
+  }));
+}
+
+window.openTripForm = function(id) {
+  const t = id ? tripData.find(x => x.id === id) : null;
+  document.getElementById('trip-edit-id').value    = id || '';
+  document.getElementById('trip-modal-title').textContent = id ? '走行記録を編集' : '走行記録を追加';
+  document.getElementById('trip-date').value = t?.date || today();
+  updateDayDisplay();
+
+  if (t?.segments?.length) {
+    segments = t.segments.map(sg => ({ ...sg }));
+  } else {
+    segments = [{ typeId:'', typeOther:'', from: lastArrival||'', to:'', km:'' }];
+  }
+  renderSegments();
+  document.getElementById('trip-modal').classList.add('open');
+};
+
+window.updateDayDisplay = function() {
+  const v = document.getElementById('trip-date').value;
+  document.getElementById('trip-day').textContent = dayName(v) || '－';
+};
+
+window.saveTrip = async function() {
+  const id   = document.getElementById('trip-edit-id').value;
+  const date = document.getElementById('trip-date').value;
+  if (!date) { alert('日付を入力してください'); return; }
+  const segs = readSegments();
+  if (!segs.length || segs.every(s => !s.km)) { alert('km数を入力してください'); return; }
+
+  const data = { date, segments: segs };
+  if (id) await updateDoc(doc(db, 'trips', id), data);
+  else    await addDoc(collection(db, 'trips'), data);
+
+  // remember last arrival
+  const lastSeg = segs[segs.length-1];
+  if (lastSeg.to) lastArrival = lastSeg.to;
+
+  closeModal('trip-modal');
+  await loadTrips();
+};
+
+window.deleteTrip = async function(id) {
+  if (!await confirm('この走行記録を削除しますか？')) return;
+  await deleteDoc(doc(db, 'trips', id));
+  await loadTrips();
+};
+
+// ════════════════════════════════════════════════
+// FUEL
+// ════════════════════════════════════════════════
+async function loadFuel() {
+  const endYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+  const endMStr = ymd(endYear, currentMonth === 12 ? 1 : currentMonth+1, 1);
+  const startStr = ymd(currentYear, currentMonth, 1);
+
+  const snap = await getDocs(
+    query(collection(db, 'fuel'),
+      where('date','>=', startStr),
+      where('date','<',  endMStr),
+      orderBy('date','desc')
+    )
+  );
+  fuelData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderFuelList();
+}
+
+function renderFuelList() {
+  const el = document.getElementById('fuel-list');
+  if (!fuelData.length) {
+    el.innerHTML = '<div class="empty-state">この月の給油記録はありません</div>';
+    return;
+  }
+  el.innerHTML = fuelData.map(f => `
+    <div class="record-item">
+      <div class="record-item-header">
+        <span class="record-date">${f.date}（${dayName(f.date)}）</span>
+        <span class="record-km" style="color:var(--accent3)">${fmtNum(f.amount)}円</span>
+      </div>
+      <div style="font-size:13px;color:var(--text2);margin-top:4px">
+        ${f.liters}L &nbsp;／&nbsp; 単価: ${f.unit ? f.unit.toFixed(1) + '円/L' : '－'}
+      </div>
+      <div class="record-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openFuelForm('${f.id}')">編集</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteFuel('${f.id}')">削除</button>
+      </div>
+    </div>`).join('');
+}
+
+window.openFuelForm = function(id) {
+  const f = id ? fuelData.find(x => x.id === id) : null;
+  document.getElementById('fuel-edit-id').value   = id || '';
+  document.getElementById('fuel-modal-title').textContent = id ? '給油記録を編集' : '給油記録を追加';
+  document.getElementById('fuel-date').value      = f?.date   || today();
+  document.getElementById('fuel-amount').value    = f?.amount || '';
+  document.getElementById('fuel-liters').value    = f?.liters || '';
+  document.getElementById('fuel-unit').value      = f?.unit   ? f.unit.toFixed(1) : '';
+  document.getElementById('fuel-modal').classList.add('open');
+};
+
+window.calcUnitPrice = function() {
+  const a = parseFloat(document.getElementById('fuel-amount').value);
+  const l = parseFloat(document.getElementById('fuel-liters').value);
+  document.getElementById('fuel-unit').value = (a && l) ? (a/l).toFixed(1) : '';
+};
+
+window.saveFuel = async function() {
+  const id     = document.getElementById('fuel-edit-id').value;
+  const date   = document.getElementById('fuel-date').value;
+  const amount = parseFloat(document.getElementById('fuel-amount').value) || 0;
+  const liters = parseFloat(document.getElementById('fuel-liters').value) || 0;
+  const unit   = (amount && liters) ? parseFloat((amount/liters).toFixed(2)) : 0;
+  if (!date || !amount || !liters) { alert('日付・金額・リッター数を入力してください'); return; }
+  const data = { date, amount, liters, unit };
+  if (id) await updateDoc(doc(db, 'fuel', id), data);
+  else    await addDoc(collection(db, 'fuel'), data);
+  closeModal('fuel-modal');
+  await loadFuel();
+};
+
+window.deleteFuel = async function(id) {
+  if (!await confirm('この給油記録を削除しますか？')) return;
+  await deleteDoc(doc(db, 'fuel', id));
+  await loadFuel();
+};
+
+// ════════════════════════════════════════════════
+// STATS
+// ════════════════════════════════════════════════
+async function renderStats() {
+  const el = document.getElementById('stats-content');
+  el.innerHTML = '<div class="loading">計算中…</div>';
+
+  // load trips for month
+  const endYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+  const endMStr = ymd(endYear, currentMonth === 12 ? 1 : currentMonth+1, 1);
+  const startStr = ymd(currentYear, currentMonth, 1);
+
+  const [tSnap, fSnap] = await Promise.all([
+    getDocs(query(collection(db,'trips'), where('date','>=',startStr), where('date','<',endMStr))),
+    getDocs(query(collection(db,'fuel'),  where('date','>=',startStr), where('date','<',endMStr)))
+  ]);
+
+  const trips = tSnap.docs.map(d => d.data());
+  const fuels = fSnap.docs.map(d => d.data());
+
+  // km by type
+  const kmByType = {};
+  let totalKm = 0, workKm = 0, privKm = 0;
+  trips.forEach(t => {
+    (t.segments||[]).forEach(sg => {
+      const km = parseFloat(sg.km)||0;
+      totalKm += km;
+      const type = typesMaster.find(x => x.id === sg.typeId);
+      const key  = sg.typeId === '__other__' ? ('その他:' + (sg.typeOther||'その他'))
+                 : (type ? sg.typeId : '__unknown__');
+      const label = sg.typeId === '__other__' ? (sg.typeOther||'その他')
+                  : (type ? type.name : '不明');
+      if (!kmByType[key]) kmByType[key] = { label, category: type?.category||'private', km: 0 };
+      kmByType[key].km += km;
+      if (type?.category === 'work') workKm += km;
+      else                           privKm += km;
+    });
+  });
+
+  const workRatio  = totalKm ? Math.round(workKm / totalKm * 100) : 0;
+  const privRatio  = 100 - workRatio;
+
+  // fuel totals
+  const totalFuelAmt    = fuels.reduce((s,f) => s + (f.amount||0), 0);
+  const totalFuelLiters = fuels.reduce((s,f) => s + (f.liters||0), 0);
+  const avgFuelEff      = (totalKm && totalFuelLiters) ? (totalKm / totalFuelLiters) : 0;
+  const taxDeduction    = totalFuelAmt ? Math.round(totalFuelAmt * workRatio / 100) : 0;
+
+  // type breakdown
+  const typeRows = Object.values(kmByType).sort((a,b)=>b.km-a.km).map(t => `
+    <div class="type-row">
+      <div class="t-name">
+        ${t.label}
+        <span class="t-badge ${t.category==='work'?'badge-work':'badge-private'}">
+          ${t.category==='work'?'仕事':'私用'}
+        </span>
+      </div>
+      <span class="t-km">${t.km.toFixed(1)} km</span>
+    </div>`).join('');
+
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-value">${totalKm.toFixed(1)}</div>
+        <div class="stat-label">総走行距離 (km)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value green">${workKm.toFixed(1)}</div>
+        <div class="stat-label">仕事走行 (km)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value orange">${fmtNum(totalFuelAmt)}</div>
+        <div class="stat-label">給油合計 (円)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${avgFuelEff ? avgFuelEff.toFixed(1) : '－'}</div>
+        <div class="stat-label">平均燃費 (km/L)</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📐 公私比率</div>
+      <div class="ratio-bar">
+        <div class="ratio-bar-fill" style="width:${workRatio}%"></div>
+      </div>
+      <div class="ratio-labels">
+        <span>仕事 ${workRatio}% (${workKm.toFixed(1)}km)</span>
+        <span>私用 ${privRatio}% (${privKm.toFixed(1)}km)</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🗂 種別内訳</div>
+      ${typeRows || '<div class="empty-state">記録なし</div>'}
+    </div>
+
+    <div class="card">
+      <div class="card-title">💴 確定申告参考</div>
+      <div class="type-row">
+        <span class="t-name">給油合計</span>
+        <span class="t-km">${fmtNum(totalFuelAmt)} 円</span>
+      </div>
+      <div class="type-row">
+        <span class="t-name">仕事比率</span>
+        <span class="t-km">${workRatio} %</span>
+      </div>
+      <div class="type-row" style="border-bottom:none">
+        <span class="t-name" style="font-weight:700;color:var(--accent)">按分参考値（仕事分）</span>
+        <span class="t-km" style="font-size:18px;color:var(--accent)">${fmtNum(taxDeduction)} 円</span>
+      </div>
+    </div>
+
+    ${fuels.length ? `
+    <div class="card">
+      <div class="card-title">⛽ 給油内訳</div>
+      <div class="type-row">
+        <span class="t-name">給油回数</span>
+        <span class="t-km">${fuels.length} 回</span>
+      </div>
+      <div class="type-row">
+        <span class="t-name">給油合計リッター</span>
+        <span class="t-km">${totalFuelLiters.toFixed(2)} L</span>
+      </div>
+    </div>` : ''}
+  `;
+}
+
+// ── Modal helpers ──────────────────────────────
+window.closeModal = function(id) {
+  document.getElementById(id).classList.remove('open');
+};
+
+// ── Init ──────────────────────────────────────
+(async function init() {
+  updateMonthLabels();
+  await loadSettings();
+  await loadTrips();
+  await loadFuel();
+})();
+</script>
+</body>
+</html>
