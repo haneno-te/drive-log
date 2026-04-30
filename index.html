@@ -831,6 +831,7 @@ function renderPlaceList() {
     </div>`;
   }).join('');
 }
+window.renderPlaceList = renderPlaceList;
 window.openPlaceForm = function(id) {
   const p = id ? placesMaster.find(x => x.id === id) : null;
   document.getElementById('place-edit-id').value = id || '';
@@ -848,15 +849,23 @@ window.savePlace = async function() {
   const category = document.getElementById('place-category').value;
   if (!name) { alert('名称を入力してください'); return; }
   const data = { _type:'place', name, area, category };
-  if (id) await setDoc(doc(db,'drive_settings',id), data);
-  else    await addDoc(collection(db,'drive_settings'), data);
+  if (id) {
+    await setDoc(doc(db,'drive_settings',id), data);
+    const idx = placesMaster.findIndex(p => p.id === id);
+    if (idx !== -1) placesMaster[idx] = { ...data, id };
+  } else {
+    const ref = await addDoc(collection(db,'drive_settings'), data);
+    placesMaster.push({ ...data, id: ref.id });
+    placesMaster.sort((a,b) => (a.area||'').localeCompare(b.area||'') || (a.name||'').localeCompare(b.name||''));
+  }
   closeModal('place-modal');
-  await loadSettings();
+  renderPlaceList();
 };
 window.deletePlace = async function(id) {
   if (!await showConfirm('この地点を削除しますか？')) return;
   await deleteDoc(doc(db,'drive_settings',id));
-  await loadSettings();
+  placesMaster = placesMaster.filter(p => p.id !== id);
+  renderPlaceList();
 };
 
 // ── Place Category ──────────────────────
@@ -888,15 +897,25 @@ window.savePlaceCategory = async function() {
   const order = parseInt(document.getElementById('place-cat-order').value) || 0;
   if (!name) { alert('カテゴリ名を入力してください'); return; }
   const data = { _type:'place_category', name, order };
-  if (id) await setDoc(doc(db,'drive_settings',id), data);
-  else    await addDoc(collection(db,'drive_settings'), data);
+  if (id) {
+    await setDoc(doc(db,'drive_settings',id), data);
+    const idx = placeCategories.findIndex(c => c.id === id);
+    if (idx !== -1) placeCategories[idx] = { ...data, id };
+  } else {
+    const ref = await addDoc(collection(db,'drive_settings'), data);
+    placeCategories.push({ ...data, id: ref.id });
+    placeCategories.sort((a,b) => (a.order||0)-(b.order||0));
+  }
   closeModal('place-cat-modal');
-  await loadSettings();
+  renderPlaceCategoryList();
+  syncPlaceCatFilterOpts();
 };
 window.deletePlaceCategory = async function(id) {
   if (!await showConfirm('このカテゴリを削除しますか？')) return;
   await deleteDoc(doc(db,'drive_settings',id));
-  await loadSettings();
+  placeCategories = placeCategories.filter(c => c.id !== id);
+  renderPlaceCategoryList();
+  syncPlaceCatFilterOpts();
 };
 window.movePlaceCategory = async function(id, dir) {
   const idx  = placeCategories.findIndex(c => c.id === id);
@@ -905,7 +924,12 @@ window.movePlaceCategory = async function(id, dir) {
   const a = placeCategories[idx], b = placeCategories[swap];
   await updateDoc(doc(db,'drive_settings',a.id), { order: b.order });
   await updateDoc(doc(db,'drive_settings',b.id), { order: a.order });
-  await loadSettings();
+  const tmpOrder = a.order;
+  placeCategories[idx].order  = b.order;
+  placeCategories[swap].order = tmpOrder;
+  placeCategories.sort((a,b) => (a.order||0)-(b.order||0));
+  renderPlaceCategoryList();
+  syncPlaceCatFilterOpts();
 };
 
 function syncPlaceCatFilterOpts() {
@@ -1179,12 +1203,6 @@ function buildPlaceOpts(selected, segIdx) {
 window.rebuildPlaceSelects = function(i) {
   const fromSel = document.getElementById(`seg-from-sel-${i}`);
   const toSel   = document.getElementById(`seg-to-sel-${i}`);
-  const catSel  = document.getElementById(`seg-filter-cat-${i}`);
-  if (catSel) {
-    const cur = catSel.value;
-    catSel.innerHTML = `<option value="">カテゴリ：すべて</option>`
-      + placeCategories.map(c => `<option value="${c.id}" ${c.id===cur?'selected':''}>${c.name}</option>`).join('');
-  }
   if (fromSel) fromSel.innerHTML = buildPlaceOpts(document.getElementById(`seg-from-${i}`)?.value || '', i);
   if (toSel)   toSel.innerHTML   = buildPlaceOpts(document.getElementById(`seg-to-${i}`)?.value   || '', i);
 };
