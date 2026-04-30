@@ -249,6 +249,17 @@
   .sub-type-section { margin-left: 12px; border-left: 2px solid var(--border); padding-left: 10px; margin-top: 4px; }
   .sub-badge { font-size: 10px; color: var(--text3); background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; margin-left: 6px; }
 
+  /* ── Accordion ── */
+  .acc-header { display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; padding:2px 0; }
+  .acc-toggle { font-size:12px; color:var(--text3); display:inline-block; transition:transform .2s; }
+  .acc-toggle.open { transform:rotate(180deg); }
+  .acc-body { display:none; }
+  .acc-body.open { display:block; margin-top:10px; }
+
+  /* ── Filter row ── */
+  .filter-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+  .filter-sel { flex:1; min-width:90px; padding:5px 8px; font-size:12px; background:var(--bg3); border:1px solid var(--border); border-radius:6px; color:var(--text); -webkit-appearance:none; }
+
   /* ── Modal ── */
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 500; align-items: flex-end; justify-content: center; }
   .modal-overlay.open { display: flex; }
@@ -370,19 +381,58 @@
 <!-- ④ 設定 -->
 <div id="page-settings" class="page">
   <div class="card">
-    <div class="card-title">🗂 種別マスター</div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:10px">
-      「仕事」にサブ種別を追加できます。プライベート・その他は固定です。
+    <div class="acc-header" onclick="toggleAcc('acc-type')">
+      <div class="card-title" style="margin-bottom:0">🗂 種別マスター</div>
+      <span class="acc-toggle" id="acc-type-icon">▼</span>
     </div>
-    <div id="type-list"></div>
-    <button class="btn btn-ghost btn-sm btn-full" style="margin-top:10px" onclick="openSubTypeForm(null)">
-      ＋ 仕事のサブ種別を追加
-    </button>
+    <div class="acc-body" id="acc-type">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px;margin-top:8px">
+        「仕事」にサブ種別を追加できます。プライベート・その他は固定です。
+      </div>
+      <div id="type-list"></div>
+      <button class="btn btn-ghost btn-sm btn-full" style="margin-top:10px" onclick="openSubTypeForm(null)">
+        ＋ 仕事のサブ種別を追加
+      </button>
+    </div>
   </div>
   <div class="card">
-    <div class="card-title">📍 地点テンプレート</div>
-    <div id="place-list"></div>
-    <button class="btn btn-ghost btn-sm btn-full" style="margin-top:10px" onclick="openPlaceForm(null)">＋ 地点を追加</button>
+    <div class="acc-header" onclick="toggleAcc('acc-place')">
+      <div class="card-title" style="margin-bottom:0">📍 地点テンプレート</div>
+      <span class="acc-toggle" id="acc-place-icon">▼</span>
+    </div>
+    <div class="acc-body" id="acc-place">
+      <div class="filter-row" style="margin-top:8px">
+        <select class="filter-sel" id="place-filter-area" onchange="renderPlaceList()">
+          <option value="">エリア：すべて</option>
+          <option value="__none__">なし（市外等）</option>
+          <option value="中央区">中央区</option>
+          <option value="北区">北区</option>
+          <option value="東区">東区</option>
+          <option value="白石区">白石区</option>
+          <option value="厚別区">厚別区</option>
+          <option value="豊平区">豊平区</option>
+          <option value="清田区">清田区</option>
+          <option value="南区">南区</option>
+          <option value="西区">西区</option>
+          <option value="手稲区">手稲区</option>
+        </select>
+        <select class="filter-sel" id="place-filter-cat" onchange="renderPlaceList()">
+          <option value="">カテゴリ：すべて</option>
+        </select>
+      </div>
+      <div id="place-list"></div>
+      <button class="btn btn-ghost btn-sm btn-full" style="margin-top:10px" onclick="openPlaceForm(null)">＋ 地点を追加</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="acc-header" onclick="toggleAcc('acc-place-cat')">
+      <div class="card-title" style="margin-bottom:0">🏷 地点カテゴリ管理</div>
+      <span class="acc-toggle" id="acc-place-cat-icon">▼</span>
+    </div>
+    <div class="acc-body" id="acc-place-cat">
+      <div id="place-cat-list" style="margin-top:8px"></div>
+      <button class="btn btn-ghost btn-sm btn-full" style="margin-top:10px" onclick="openPlaceCategoryForm(null)">＋ カテゴリを追加</button>
+    </div>
   </div>
   <div class="card">
     <div class="card-title">⛽ 車両・燃費設定</div>
@@ -480,12 +530,56 @@
   <div class="modal">
     <div class="modal-title">📍 地点テンプレート</div>
     <input type="hidden" id="place-edit-id">
+    <div class="form-row">
+      <div>
+        <label>区</label>
+        <select id="place-area">
+          <option value="">なし（市外等）</option>
+          <option value="中央区">中央区</option>
+          <option value="北区">北区</option>
+          <option value="東区">東区</option>
+          <option value="白石区">白石区</option>
+          <option value="厚別区">厚別区</option>
+          <option value="豊平区">豊平区</option>
+          <option value="清田区">清田区</option>
+          <option value="南区">南区</option>
+          <option value="西区">西区</option>
+          <option value="手稲区">手稲区</option>
+        </select>
+      </div>
+      <div>
+        <label>カテゴリ</label>
+        <select id="place-category"></select>
+      </div>
+    </div>
     <div class="form-row single">
-      <div><label>地点名</label><input type="text" id="place-name" placeholder="例：自宅・クリニック"></div>
+      <div><label>名称</label><input type="text" id="place-name" placeholder="例：自宅・クリニック"></div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-primary" style="flex:1" onclick="savePlace()">保存</button>
       <button class="btn btn-ghost" style="flex:1" onclick="closeModal('place-modal')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- Place Category Form -->
+<div class="modal-overlay" id="place-cat-modal">
+  <div class="modal">
+    <div class="modal-title">🏷 地点カテゴリ</div>
+    <input type="hidden" id="place-cat-edit-id">
+    <div class="form-row">
+      <div>
+        <label>カテゴリ名</label>
+        <input type="text" id="place-cat-name" placeholder="例：訪問先・施設">
+      </div>
+      <div>
+        <label>表示順</label>
+        <input type="number" id="place-cat-order" placeholder="0" min="0">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1" onclick="savePlaceCategory()">保存</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('place-cat-modal')">キャンセル</button>
     </div>
   </div>
 </div>
@@ -530,9 +624,10 @@ let currentYear  = new Date().getFullYear();
 let currentMonth = new Date().getMonth() + 1;
 let tripData     = [];   // all trips for current month
 let fuelData     = [];
-let subTypes     = [];   // [{id,name,order}] — 仕事サブ種別
-let placesMaster = [];
-let vehicleConfig = { tankCap: 0, initKm: 0 };
+let subTypes        = [];   // [{id,name,order}] — 仕事サブ種別
+let placesMaster    = [];
+let placeCategories = [];
+let vehicleConfig   = { tankCap: 0, initKm: 0 };
 let lastArrival  = '';
 let selectedDate = null; // currently expanded calendar day
 let segments     = [];
@@ -543,6 +638,8 @@ const FIXED_TYPES = [
   { id: 'work',    label: '仕事',         cat: 'work' },
   { id: 'other',   label: 'その他',       cat: 'other' }
 ];
+
+const AREAS = ['中央区','北区','東区','白石区','厚別区','豊平区','清田区','南区','西区','手稲区'];
 
 const DAYS = ['日','月','火','水','木','金','土'];
 
@@ -569,11 +666,14 @@ function getMonthRange() {
 }
 
 // ── Confirm ────────────────────────────
-function showConfirm(msg) {
+function showConfirm(msg, yesLabel, yesClass) {
   return new Promise(resolve => {
     document.getElementById('confirm-q').textContent = msg;
     document.getElementById('confirm-overlay').classList.add('open');
     const yes = document.getElementById('confirm-yes');
+    yes.textContent = yesLabel || '削除する';
+    yes.className = `btn ${yesClass || 'btn-danger'} `;
+    yes.style.flex = '1';
     const no  = document.getElementById('confirm-no');
     const cleanup = () => {
       document.getElementById('confirm-overlay').classList.remove('open');
@@ -621,18 +721,24 @@ function updateMonthLabels() {
 // ══════════════════════════════════════
 async function loadSettings() {
   const snap = await getDocs(collection(db, 'drive_settings'));
-  subTypes     = [];
-  placesMaster = [];
-  vehicleConfig = { tankCap:0, initKm:0 };
+  subTypes        = [];
+  placesMaster    = [];
+  placeCategories = [];
+  vehicleConfig   = { tankCap:0, initKm:0 };
   snap.forEach(d => {
     const dd = d.data();
-    if (dd._type === 'sub_type') subTypes.push({ id: d.id, ...dd });
-    if (dd._type === 'place')    placesMaster.push({ id: d.id, ...dd });
-    if (dd._type === 'vehicle')  vehicleConfig = { tankCap: dd.tankCap||0, initKm: dd.initKm||0 };
+    if (dd._type === 'sub_type')       subTypes.push({ id: d.id, ...dd });
+    if (dd._type === 'place')          placesMaster.push({ id: d.id, ...dd });
+    if (dd._type === 'place_category') placeCategories.push({ id: d.id, ...dd });
+    if (dd._type === 'vehicle')        vehicleConfig = { tankCap: dd.tankCap||0, initKm: dd.initKm||0 };
   });
   subTypes.sort((a,b) => (a.order||0)-(b.order||0));
+  placeCategories.sort((a,b) => (a.order||0)-(b.order||0));
+  placesMaster.sort((a,b) => (a.area||'').localeCompare(b.area||'') || (a.name||'').localeCompare(b.name||''));
+  syncPlaceCatFilterOpts();
   renderTypeList();
   renderPlaceList();
+  renderPlaceCategoryList();
   document.getElementById('tank-cap').value = vehicleConfig.tankCap || '';
   document.getElementById('init-km').value  = vehicleConfig.initKm  || '';
 }
@@ -696,26 +802,52 @@ window.deleteSubType = async function(id) {
 // Place Form
 function renderPlaceList() {
   const el = document.getElementById('place-list');
-  if (!placesMaster.length) { el.innerHTML = '<div class="empty-state">地点がありません</div>'; return; }
-  el.innerHTML = placesMaster.map(p => `
+  if (!el) return;
+  const filterArea = document.getElementById('place-filter-area')?.value || '';
+  const filterCat  = document.getElementById('place-filter-cat')?.value  || '';
+  let list = placesMaster;
+  if (filterArea === '__none__') {
+    list = list.filter(p => !p.area);
+  } else if (filterArea) {
+    list = list.filter(p => p.area === filterArea);
+  }
+  if (filterCat) {
+    list = list.filter(p => p.category === filterCat);
+  }
+  if (!list.length) { el.innerHTML = '<div class="empty-state">地点がありません</div>'; return; }
+  el.innerHTML = list.map(p => {
+    const areaLabel = p.area || 'なし';
+    const catLabel  = placeCategories.find(c => c.id === p.category)?.name || '－';
+    return `
     <div class="setting-item">
-      <span>${p.name}</span>
+      <div>
+        <div>${p.name}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${areaLabel} ／ ${catLabel}</div>
+      </div>
       <div class="setting-actions">
         <button class="btn btn-ghost btn-sm" onclick="openPlaceForm('${p.id}')">編集</button>
         <button class="btn btn-danger btn-sm" onclick="deletePlace('${p.id}')">削除</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 window.openPlaceForm = function(id) {
   const p = id ? placesMaster.find(x => x.id === id) : null;
   document.getElementById('place-edit-id').value = id || '';
+  document.getElementById('place-area').value    = p?.area || '';
   document.getElementById('place-name').value    = p?.name || '';
+  const catSel = document.getElementById('place-category');
+  catSel.innerHTML = `<option value="">未設定</option>`
+    + placeCategories.map(c => `<option value="${c.id}" ${c.id===(p?.category||'')?'selected':''}>${c.name}</option>`).join('');
   document.getElementById('place-modal').classList.add('open');
 };
 window.savePlace = async function() {
-  const id   = document.getElementById('place-edit-id').value;
-  const data = { _type:'place', name: document.getElementById('place-name').value.trim() };
-  if (!data.name) { alert('地点名を入力してください'); return; }
+  const id       = document.getElementById('place-edit-id').value;
+  const area     = document.getElementById('place-area').value;
+  const name     = document.getElementById('place-name').value.trim();
+  const category = document.getElementById('place-category').value;
+  if (!name) { alert('名称を入力してください'); return; }
+  const data = { _type:'place', name, area, category };
   if (id) await setDoc(doc(db,'drive_settings',id), data);
   else    await addDoc(collection(db,'drive_settings'), data);
   closeModal('place-modal');
@@ -725,6 +857,70 @@ window.deletePlace = async function(id) {
   if (!await showConfirm('この地点を削除しますか？')) return;
   await deleteDoc(doc(db,'drive_settings',id));
   await loadSettings();
+};
+
+// ── Place Category ──────────────────────
+function renderPlaceCategoryList() {
+  const el = document.getElementById('place-cat-list');
+  if (!el) return;
+  if (!placeCategories.length) { el.innerHTML = '<div class="empty-state">カテゴリがありません</div>'; return; }
+  el.innerHTML = placeCategories.map((c, idx) => `
+    <div class="setting-item">
+      <span>${c.name}</span>
+      <div class="setting-actions">
+        ${idx > 0 ? `<button class="btn btn-ghost btn-sm" onclick="movePlaceCategory('${c.id}',-1)">↑</button>` : ''}
+        ${idx < placeCategories.length-1 ? `<button class="btn btn-ghost btn-sm" onclick="movePlaceCategory('${c.id}',1)">↓</button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="openPlaceCategoryForm('${c.id}')">編集</button>
+        <button class="btn btn-danger btn-sm" onclick="deletePlaceCategory('${c.id}')">削除</button>
+      </div>
+    </div>`).join('');
+}
+window.openPlaceCategoryForm = function(id) {
+  const c = id ? placeCategories.find(x => x.id === id) : null;
+  document.getElementById('place-cat-edit-id').value = id || '';
+  document.getElementById('place-cat-name').value    = c?.name  || '';
+  document.getElementById('place-cat-order').value   = c?.order ?? '';
+  document.getElementById('place-cat-modal').classList.add('open');
+};
+window.savePlaceCategory = async function() {
+  const id    = document.getElementById('place-cat-edit-id').value;
+  const name  = document.getElementById('place-cat-name').value.trim();
+  const order = parseInt(document.getElementById('place-cat-order').value) || 0;
+  if (!name) { alert('カテゴリ名を入力してください'); return; }
+  const data = { _type:'place_category', name, order };
+  if (id) await setDoc(doc(db,'drive_settings',id), data);
+  else    await addDoc(collection(db,'drive_settings'), data);
+  closeModal('place-cat-modal');
+  await loadSettings();
+};
+window.deletePlaceCategory = async function(id) {
+  if (!await showConfirm('このカテゴリを削除しますか？')) return;
+  await deleteDoc(doc(db,'drive_settings',id));
+  await loadSettings();
+};
+window.movePlaceCategory = async function(id, dir) {
+  const idx  = placeCategories.findIndex(c => c.id === id);
+  const swap = idx + dir;
+  if (swap < 0 || swap >= placeCategories.length) return;
+  const a = placeCategories[idx], b = placeCategories[swap];
+  await updateDoc(doc(db,'drive_settings',a.id), { order: b.order });
+  await updateDoc(doc(db,'drive_settings',b.id), { order: a.order });
+  await loadSettings();
+};
+
+function syncPlaceCatFilterOpts() {
+  const sel = document.getElementById('place-filter-cat');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">カテゴリ：すべて</option>`
+    + placeCategories.map(c => `<option value="${c.id}" ${c.id===cur?'selected':''}>${c.name}</option>`).join('');
+}
+
+window.toggleAcc = function(id) {
+  const body = document.getElementById(id);
+  const icon = document.getElementById(id + '-icon');
+  const open = body.classList.toggle('open');
+  if (icon) icon.classList.toggle('open', open);
 };
 
 // Vehicle
@@ -966,12 +1162,32 @@ function buildSubTypeOpts(selectedSubId) {
         `<option value="${st.id}" ${st.id===selectedSubId?'selected':''}>${st.name}</option>`
       ).join('');
 }
-function buildPlaceOpts(selected) {
+function buildPlaceOpts(selected, segIdx) {
+  const filterArea = segIdx !== undefined ? (document.getElementById(`seg-filter-area-${segIdx}`)?.value || '') : '';
+  const filterCat  = segIdx !== undefined ? (document.getElementById(`seg-filter-cat-${segIdx}`)?.value  || '') : '';
+  let list = placesMaster;
+  if (filterArea === '__none__')  list = list.filter(p => !p.area);
+  else if (filterArea)            list = list.filter(p => p.area === filterArea);
+  if (filterCat)                  list = list.filter(p => p.category === filterCat);
   return `<option value="">（テンプレから選択）</option>`
-    + placesMaster.map(p =>
-        `<option value="${p.name}" ${p.name===selected?'selected':''}>${p.name}</option>`
-      ).join('');
+    + list.map(p => {
+        const label = p.area ? `${p.name}（${p.area}）` : p.name;
+        return `<option value="${p.name}" ${p.name===selected?'selected':''}>${label}</option>`;
+      }).join('');
 }
+
+window.rebuildPlaceSelects = function(i) {
+  const fromSel = document.getElementById(`seg-from-sel-${i}`);
+  const toSel   = document.getElementById(`seg-to-sel-${i}`);
+  const catSel  = document.getElementById(`seg-filter-cat-${i}`);
+  if (catSel) {
+    const cur = catSel.value;
+    catSel.innerHTML = `<option value="">カテゴリ：すべて</option>`
+      + placeCategories.map(c => `<option value="${c.id}" ${c.id===cur?'selected':''}>${c.name}</option>`).join('');
+  }
+  if (fromSel) fromSel.innerHTML = buildPlaceOpts(document.getElementById(`seg-from-${i}`)?.value || '', i);
+  if (toSel)   toSel.innerHTML   = buildPlaceOpts(document.getElementById(`seg-to-${i}`)?.value   || '', i);
+};
 
 function buildHourOpts(sel) {
   let o = '<option value="">時</option>';
@@ -1030,16 +1246,35 @@ function renderSegments() {
           <input type="text" id="seg-other-${i}" value="${sg.typeOther||''}" placeholder="入力">
         </div>
       </div>
+      <div style="margin-bottom:6px">
+        <div class="filter-row">
+          <select class="filter-sel" id="seg-filter-area-${i}" onchange="rebuildPlaceSelects(${i})">
+            <option value="">エリア：すべて</option>
+            <option value="__none__">なし（市外等）</option>
+            ${AREAS.map(a=>`<option value="${a}">${a}</option>`).join('')}
+          </select>
+          <select class="filter-sel" id="seg-filter-cat-${i}" onchange="rebuildPlaceSelects(${i})">
+            <option value="">カテゴリ：すべて</option>
+            ${placeCategories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
+          </select>
+        </div>
+      </div>
       <div class="form-row">
         <div>
           <label>出発地</label>
-          <select id="seg-from-sel-${i}" onchange="onFromSelChange(${i})">${buildPlaceOpts(sg.from)}</select>
-          <input type="text" id="seg-from-${i}" value="${sg.from||''}" placeholder="または直接入力" style="margin-top:4px">
+          <select id="seg-from-sel-${i}" onchange="onFromSelChange(${i})">${buildPlaceOpts(sg.from, i)}</select>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+            <input type="text" id="seg-from-${i}" value="${sg.from||''}" placeholder="または直接入力" style="flex:1;min-width:0">
+            <label style="font-size:11px;white-space:nowrap;display:flex;align-items:center;gap:3px;margin:0;cursor:pointer"><input type="checkbox" id="seg-from-reg-${i}"> 登録</label>
+          </div>
         </div>
         <div>
           <label>到着地</label>
-          <select id="seg-to-sel-${i}" onchange="onToSelChange(${i})">${buildPlaceOpts(sg.to)}</select>
-          <input type="text" id="seg-to-${i}" value="${sg.to||''}" placeholder="または直接入力" style="margin-top:4px">
+          <select id="seg-to-sel-${i}" onchange="onToSelChange(${i})">${buildPlaceOpts(sg.to, i)}</select>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+            <input type="text" id="seg-to-${i}" value="${sg.to||''}" placeholder="または直接入力" style="flex:1;min-width:0">
+            <label style="font-size:11px;white-space:nowrap;display:flex;align-items:center;gap:3px;margin:0;cursor:pointer"><input type="checkbox" id="seg-to-reg-${i}"> 登録</label>
+          </div>
         </div>
       </div>
       <div class="form-row">
@@ -1139,11 +1374,36 @@ window.saveTrip = async function() {
   if (!date) { alert('日付を入力してください'); return; }
   const segs = readSegments();
   if (segs.every(s => !s.km)) { alert('km数を入力してください'); return; }
+
+  // テンプレ登録対象を収集
+  const placesToReg = [];
+  for (let i = 0; i < segs.length; i++) {
+    if (document.getElementById(`seg-from-reg-${i}`)?.checked && segs[i].from) placesToReg.push(segs[i].from);
+    if (document.getElementById(`seg-to-reg-${i}`)?.checked   && segs[i].to)   placesToReg.push(segs[i].to);
+  }
+
   const data = { date, segments: segs };
   if (id) await updateDoc(doc(db,'trips',id), data);
   else    await addDoc(collection(db,'trips'), data);
   const lastSeg = segs[segs.length-1];
   if (lastSeg.to) lastArrival = lastSeg.to;
+
+  // 地点テンプレ登録
+  let settingsChanged = false;
+  for (const placeName of [...new Set(placesToReg)]) {
+    const existing = placesMaster.find(p => p.name === placeName);
+    if (existing) {
+      const ok = await showConfirm(
+        `「${placeName}」と同じ名前の地点が既に登録されています。登録を続けますか？`,
+        '登録する', 'btn-primary'
+      );
+      if (!ok) continue;
+    }
+    await addDoc(collection(db,'drive_settings'), { _type:'place', name: placeName, area: '', category: '' });
+    settingsChanged = true;
+  }
+  if (settingsChanged) await loadSettings();
+
   closeModal('trip-modal');
   await loadTrips();
 };
